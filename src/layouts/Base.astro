@@ -1,0 +1,96 @@
+---
+import { ClientRouter } from "astro:transitions";
+import { Font } from "astro:assets";
+import "../styles/global.css";
+
+type Props = { title: string; description: string };
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="theme-color" content="#0b0d12" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <Font cssVariable="--font-sans" preload={[{ weight: 400, style: "normal", subset: "latin" }]} />
+    <ClientRouter />
+    <!-- Apply the stored theme before first paint, so there is no flash on reload. -->
+    <script is:inline>
+      {
+        const t = localStorage.getItem("theme");
+        document.documentElement.dataset.theme =
+          t === "light" || t === "dark"
+            ? t
+            : matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+      }
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container">
+        <a class="brand" href="/" aria-label="Watchtower home" transition:name="brand">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M16 3 6 8v8c0 6.5 4.3 11.6 10 13 5.7-1.4 10-6.5 10-13V8L16 3Z" stroke="var(--accent)" stroke-width="2" />
+            <path d="M10 19l4-5 3 3 5-7" stroke="var(--up)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          Watchtower
+        </a>
+        <label class="visually-hidden" for="currency">Currency</label>
+        <select id="currency" class="ctrl" data-currency aria-label="Currency">
+          <option value="usd">USD</option>
+          <option value="eur">EUR</option>
+          <option value="php">PHP</option>
+        </select>
+        <button class="ctrl" data-theme-toggle type="button" aria-label="Toggle colour theme">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path class="icon-moon" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
+            <g class="icon-sun"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></g>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="container">
+      <slot />
+    </main>
+
+    <footer class="site-footer container">
+      Data by <a href="https://www.coingecko.com" rel="noopener">CoinGecko</a>, public API, refreshed every minute.
+      Built with Astro by <a href="https://charlesbourgault.com" rel="noopener">Charles Bourgault</a>.
+    </footer>
+
+    <script>
+      import { getCurrency, setCurrency, getTheme, setTheme } from "../lib/prefs";
+      import type { Currency } from "../lib/coingecko";
+
+      // Re-bind after every ClientRouter navigation: the header is re-rendered each time.
+      function bind() {
+        const select = document.querySelector<HTMLSelectElement>("[data-currency]")!;
+        select.value = getCurrency();
+        select.onchange = () => setCurrency(select.value as Currency);
+        const toggle = document.querySelector<HTMLButtonElement>("[data-theme-toggle]")!;
+        toggle.onclick = () => setTheme(getTheme() === "dark" ? "light" : "dark");
+      }
+      bind();
+      document.addEventListener("astro:after-swap", bind);
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  html[data-theme="light"] .icon-moon,
+  html:not([data-theme="light"]) .icon-sun {
+    display: none;
+  }
+</style>

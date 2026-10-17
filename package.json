@@ -1,0 +1,24 @@
+{
+  "name": "watchtower",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "dev": "astro dev --port 4350",
+    "build": "astro build",
+    "preview": "astro preview --port 4350",
+    "check": "astro check && astro build"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.4.0",
+    "lightweight-charts": "^5.2.1",
+    "motion": "^14.3.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "typescript": "6"
+  }
+}

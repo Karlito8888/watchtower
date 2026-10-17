@@ -1,0 +1,331 @@
+---
+import Base from "../../layouts/Base.astro";
+
+export async function getStaticPaths() {
+  const res = await fetch(
+    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1",
+  );
+  if (!res.ok) throw new Error(`CoinGecko ${res.status} while listing coin pages`);
+  const coins = (await res.json()) as {
+    id: string;
+    name: string;
+    symbol: string;
+    image: string;
+    market_cap_rank: number;
+  }[];
+  return coins.map(({ id, name, symbol, image, market_cap_rank }) => ({
+    params: { id },
+    props: { name, symbol, image, rank: market_cap_rank },
+  }));
+}
+
+const { id } = Astro.params;
+const { name, symbol, image, rank } = Astro.props;
+const ticker = symbol.toUpperCase();
+
+const ranges = [
+  ["24h", "1"],
+  ["7d", "7"],
+  ["1m", "30"],
+  ["3m", "90"],
+  ["1y", "365"],
+  ["Max", "max"],
+] as const;
+
+// `sub`: second line under the value. `bar`: supply progress bar.
+const rows = [
+  { key: "marketCap", label: "Market cap" },
+  { key: "fdv", label: "Fully diluted valuation" },
+  { key: "volume", label: "Volume (24h)" },
+  { key: "high", label: "24h high" },
+  { key: "low", label: "24h low" },
+  { key: "circ", label: "Circulating supply", sub: true, bar: true },
+  { key: "total", label: "Total supply" },
+  { key: "max", label: "Max supply" },
+  { key: "ath", label: "All-time high", sub: true },
+  { key: "atl", label: "All-time low", sub: true },
+];
+---
+
+<Base
+  title={`${name} (${ticker}) price and chart | Watchtower`}
+  description={`Live ${name} (${ticker}) price, market cap, supply and interactive price chart.`}
+>
+  <div data-coin={id} data-name={name}>
+    <a class="back" href="/">← Markets</a>
+
+    <header class="head">
+      <img src={image} alt="" width="40" height="40" />
+      <h1>{name} <span class="symbol">{ticker}</span></h1>
+      <span class="badge num">Rank #{rank}</span>
+      <button class="ctrl fav" type="button" data-fav aria-pressed="false" aria-label={`Favourite ${name}`}>
+        <svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">
+          <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z"></path>
+        </svg>
+        Favourite
+      </button>
+    </header>
+
+    <div class="layout">
+      <section class="card chart-card" aria-label="Price chart">
+        <div class="toolbar">
+          <div class="legend">
+            <strong class="num" data-legend-price>–</strong>
+            <span class="muted num" data-legend-date></span>
+            <span class="pill num" data-range-change></span>
+          </div>
+          <div class="ranges" role="group" aria-label="Chart range">
+            {
+              ranges.map(([label, days]) => (
+                <button
+                  class:list={["ctrl", { active: days === "7" }]}
+                  type="button"
+                  data-days={days}
+                  aria-pressed={days === "7"}
+                >
+                  {label}
+                </button>
+              ))
+            }
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart" data-chart role="img" aria-label={`${name} price chart`}></div>
+          <p class="status" data-chart-status>Loading chart…</p>
+        </div>
+      </section>
+
+      <section class="card stats-card" aria-label="Market statistics">
+        <p class="status" data-stats-status hidden></p>
+        <div class="stats" data-loading data-stats>
+          <div class="price-row">
+            <h2 class="price num" data-stat="price">–</h2>
+            <span class="pill num" data-stat="change">–</span>
+          </div>
+          <dl>
+            {
+              rows.map((r) => (
+                <div class="row">
+                  <dt>{r.label}</dt>
+                  <dd>
+                    <span class="num" data-stat={r.key}>–</span>
+                    {r.sub && <small class="num" data-stat={`${r.key}Sub`} />}
+                    {r.bar && (
+                      <span class="bar" data-bar hidden aria-hidden="true">
+                        <i />
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              ))
+            }
+          </dl>
+        </div>
+      </section>
+    </div>
+  </div>
+</Base>
+
+<script>
+  import "../../scripts/coin";
+</script>
+
+<style>
+  .back {
+    display: inline-block;
+    margin: 20px 0 12px;
+    color: var(--muted);
+  }
+  .back:hover {
+    color: var(--fg);
+  }
+  .head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-bottom: 20px;
+  }
+  .head img {
+    border-radius: 50%;
+  }
+  h1 {
+    font-size: 26px;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .symbol {
+    margin-left: 4px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .badge {
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .fav {
+    margin-left: auto;
+  }
+  .fav svg {
+    fill: none;
+  }
+  .fav[aria-pressed="true"] svg {
+    fill: currentColor;
+  }
+
+  .layout {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  @media (min-width: 900px) {
+    .layout {
+      grid-template-columns: 2fr 1fr;
+      align-items: start;
+    }
+  }
+
+  .chart-card,
+  .stats-card {
+    padding: 16px;
+  }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    min-height: 28px;
+  }
+  .legend strong {
+    font-size: 20px;
+  }
+  .muted {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .ranges {
+    display: flex;
+    gap: 4px;
+  }
+  .ranges .ctrl {
+    padding: 0 10px;
+  }
+  .chart-wrap {
+    position: relative;
+  }
+  .chart {
+    height: 360px;
+  }
+  @media (max-width: 640px) {
+    .chart {
+      height: 260px;
+    }
+  }
+  .chart-wrap .status {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    gap: 12px;
+    padding: 0 16px;
+    pointer-events: none;
+  }
+  .chart-wrap .status[hidden] {
+    display: none;
+  }
+
+  .pill {
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    background: color-mix(in srgb, currentColor 14%, transparent);
+  }
+  .pill:empty {
+    display: none;
+  }
+
+  .price-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-bottom: 8px;
+  }
+  .price {
+    font-size: 34px;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+  }
+  dt {
+    color: var(--muted);
+  }
+  dd {
+    text-align: right;
+    font-weight: 600;
+  }
+  dd small {
+    display: block;
+    min-height: 1.2em;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--muted);
+  }
+  .bar {
+    display: block;
+    width: 140px;
+    height: 4px;
+    margin: 6px 0 0 auto;
+    border-radius: 2px;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+  .bar[hidden] {
+    display: none;
+  }
+  .bar i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    transition: width 0.6s ease;
+  }
+
+  [data-loading] [data-stat] {
+    display: inline-block;
+    min-width: 5em;
+    color: transparent;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s linear infinite;
+  }
+  [data-loading] .price {
+    min-width: 9ch;
+  }
+  @keyframes shimmer {
+    to {
+      background-position: -200% 0;
+    }
+  }
+</style>

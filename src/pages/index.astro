@@ -1,0 +1,362 @@
+---
+import Base from "../layouts/Base.astro";
+
+const stats = [
+  ["cap", "Market cap"],
+  ["vol", "24h volume"],
+  ["btc", "BTC dominance"],
+  ["eth", "ETH dominance"],
+  ["coins", "Active coins"],
+] as const;
+const columns = [
+  ["rank", "#", ""],
+  ["name", "Coin", "l"],
+  ["price", "Price", ""],
+  ["h1", "1h", ""],
+  ["h24", "24h", ""],
+  ["d7", "7d", ""],
+  ["d30", "30d", ""],
+  ["y1", "1y", ""],
+  ["mcap", "Market cap", ""],
+  ["vol", "Volume 24h", ""],
+] as const;
+const col = (key: string) => columns.find((c) => c[0] === key)!;
+const th = (key: string) => ({ key, label: col(key)[1], cls: col(key)[2] });
+---
+
+<Base
+  title="Watchtower | Crypto market overview"
+  description="Top 250 cryptocurrencies by market cap, prices, 7 day sparklines and 24h changes, live from CoinGecko."
+>
+  <div class="market" data-market>
+    <h1 class="visually-hidden">Crypto market overview</h1>
+
+    <!-- Shared gradients for the sparklines in the table rows. -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <linearGradient id="spark-up" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" style="stop-color:var(--up);stop-opacity:0.28"></stop>
+          <stop offset="1" style="stop-color:var(--up);stop-opacity:0"></stop>
+        </linearGradient>
+        <linearGradient id="spark-down" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" style="stop-color:var(--down);stop-opacity:0.28"></stop>
+          <stop offset="1" style="stop-color:var(--down);stop-opacity:0"></stop>
+        </linearGradient>
+      </defs>
+    </svg>
+
+    <section class="stats" aria-label="Global market">
+      {
+        stats.map(([key, label]) => (
+          <div class="card tile">
+            <span class="label">{label}</span>
+            <span class="value num skeleton" data-stat={key}>&nbsp;</span>
+            {key === "cap" && <span class="sub num" data-stat="capchg" />}
+          </div>
+        ))
+      }
+    </section>
+
+    <div class="toolbar">
+      <label class="visually-hidden" for="coin-search">Search coins by name or symbol</label>
+      <input id="coin-search" class="ctrl search" type="search" placeholder="Search coins" autocomplete="off" data-search />
+      <div class="seg" role="group" aria-label="Coins to show">
+        <button type="button" class="ctrl" data-tab="all" aria-pressed="true">All</button>
+        <button type="button" class="ctrl" data-tab="fav" aria-pressed="false">
+          Favourites <span class="badge num" data-fav-count>0</span>
+        </button>
+      </div>
+      <button type="button" class="ctrl" data-hide aria-pressed="true">Hide stablecoins</button>
+      <div class="seg" role="group" aria-label="Number of coins">
+        <button type="button" class="ctrl" data-top="50" aria-pressed="false">Top 50</button>
+        <button type="button" class="ctrl" data-top="100" aria-pressed="false">Top 100</button>
+        <button type="button" class="ctrl" data-top="250" aria-pressed="true">Top 250</button>
+      </div>
+    </div>
+
+    <p class="visually-hidden" role="status" aria-live="polite" data-count></p>
+    <p class="status" data-kind="error" data-error hidden>
+      <span data-error-text></span>
+      <button type="button" class="ctrl" data-retry>Retry</button>
+    </p>
+    <p class="status" data-empty hidden></p>
+
+    <div class="card table-wrap" data-wrap aria-busy="true">
+      <table>
+        <caption class="visually-hidden">Top cryptocurrencies by market cap</caption>
+        <thead>
+          <tr>
+            <th scope="col" data-sort="rank" class="r"><button type="button">#</button></th>
+            <th scope="col"><span class="visually-hidden">Favourite</span></th>
+            <th scope="col" data-sort="name" class="l"><button type="button">Coin</button></th>
+            {
+              ["price", "h1", "h24", "d7", "d30", "y1", "mcap", "vol"].map((k) => {
+                const { key, label } = th(k);
+                return (
+                  <th scope="col" data-sort={key}>
+                    <button type="button">{label}</button>
+                  </th>
+                );
+              })
+            }
+            <th scope="col" class="spark-h">Last 7 days</th>
+          </tr>
+        </thead>
+        <tbody data-tbody>
+          {
+            Array.from({ length: 12 }, () => (
+              <tr class="sk">
+                <td colspan="12">
+                  <div class="skeleton" />
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    import "../scripts/market";
+  </script>
+</Base>
+
+<style is:global>
+  .market {
+    padding-block: 24px 8px;
+    display: grid;
+    gap: 16px;
+  }
+
+  /* Shimmer */
+  .skeleton {
+    border-radius: 6px;
+    color: transparent;
+    background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+  }
+  @keyframes shimmer {
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Banner */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  .tile {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .tile .label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .tile .value {
+    font-size: clamp(18px, 2.2vw, 24px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    min-width: 5ch;
+    width: fit-content;
+  }
+  .tile .sub {
+    font-size: 13px;
+    min-height: 1.5em;
+  }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  .search {
+    flex: 1 1 220px;
+    max-width: 340px;
+    cursor: text;
+    padding-inline: 14px;
+  }
+  .search:focus-visible {
+    outline-offset: 0;
+    border-color: var(--accent);
+  }
+  .seg {
+    display: inline-flex;
+    gap: 4px;
+    padding: 3px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+  }
+  .seg .ctrl {
+    height: 28px;
+    border-color: transparent;
+    background: transparent;
+  }
+  .seg .ctrl:hover {
+    background: var(--surface-2);
+  }
+  .seg .ctrl[aria-pressed="true"] {
+    background: var(--accent);
+  }
+  .badge {
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 18px;
+    text-align: center;
+    background: var(--surface-2);
+    color: var(--fg);
+  }
+  .ctrl[aria-pressed="true"] .badge {
+    background: rgb(255 255 255 / 0.25);
+    color: #fff;
+  }
+
+  /* Table */
+  .table-wrap {
+    min-width: 0; /* grid item: never widen the page, scroll inside instead */
+    overflow-x: auto;
+    transition: opacity 0.2s;
+  }
+  .table-wrap[aria-busy="true"] {
+    opacity: 0.55;
+  }
+  .market table {
+    width: 100%;
+    min-width: 1000px;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+  }
+  .market th,
+  .market td {
+    padding: 9px 8px;
+    text-align: right;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+  .market tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .market thead th {
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+  }
+  .market thead th.spark-h {
+    cursor: default;
+  }
+  .market th button {
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: inherit;
+    font-weight: inherit;
+    color: inherit;
+  }
+  .market th:hover button,
+  .market th[aria-sort] button {
+    color: var(--fg);
+  }
+  .market th[aria-sort="ascending"] button::after {
+    content: " \2191";
+  }
+  .market th[aria-sort="descending"] button::after {
+    content: " \2193";
+  }
+  .market .l,
+  .market td.coin {
+    text-align: left;
+  }
+  .market tbody tr {
+    background: var(--surface);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .market tbody tr:hover {
+    background: var(--surface-2);
+  }
+  .market tbody tr.sk {
+    cursor: default;
+  }
+  .market tbody tr.sk:hover {
+    background: var(--surface);
+  }
+  .market tr.sk .skeleton {
+    height: 22px;
+  }
+  .muted {
+    color: var(--muted);
+  }
+  .market td.coin a {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .market td.coin img {
+    border-radius: 50%;
+    background: var(--surface-2);
+  }
+  .market td.coin .nm {
+    font-weight: 600;
+  }
+  .market td.coin .sym {
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .market td.spark {
+    padding-block: 4px;
+  }
+  .market td.spark svg {
+    margin-left: auto;
+  }
+  .star {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .star svg {
+    fill: none;
+    stroke: currentColor;
+  }
+  .star:hover {
+    color: var(--warn);
+  }
+  .star[aria-pressed="true"] svg {
+    fill: var(--warn);
+    stroke: var(--warn);
+  }
+
+  /* The table scrolls sideways inside its card when it does not fit (PHP prices are wide);
+     the coin column stays pinned. A viewport-sticky thead cannot live inside a scroll box. */
+  .market td.coin,
+  .market th.l {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: inherit;
+  }
+  .market thead th.l {
+    background: var(--surface);
+  }
+</style>
