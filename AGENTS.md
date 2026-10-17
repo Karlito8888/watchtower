@@ -48,10 +48,14 @@ set follows the market. A coin outside the top 250 lands on `src/pages/404.astro
   `vtName`).
 - `src/components/Constellation.astro` + `src/scripts/constellation-boot.ts` +
   `src/scripts/constellation.ts`: three.js `Points` scene above the banner, one point per coin
-  (Vogel spiral by rank, size from log market cap, colour from 24h change), fed by the
-  `market:data` event `market.ts` dispatches after each load. `src/scripts/webgl-gate.ts`
-  starts it only with WebGL 2, without reduced motion, after load and idle, and owns the
-  pause button. Without it the block shows a static CSS gradient.
+  (Vogel spiral by rank, size from log market cap, colour from 24h change). Interactive: hover
+  or tap picks a point (tooltip, row highlight), drag spins, wheel or pinch zooms, double-tap
+  resets, click dives the camera then navigates to the coin. `src/scripts/webgl-gate.ts` starts
+  it only with WebGL 2, without reduced motion, after load and idle, and owns the pause button.
+  Without it the block shows a static CSS gradient.
+- Table and scene talk only through `document` events: `market:data` (all coins),
+  `market:visible` (ids the table currently shows; others dim), `market:focus` (hovered row id or
+  null; the point flares), `scene:focus` (picked point id or null; the row gets `.is-focus`).
 - `src/styles/global.css`: tokens (`--bg --surface --border --fg --muted --accent --up --down`)
   with a light variant under `html[data-theme="light"]`; components use only tokens.
 
