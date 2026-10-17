@@ -55,8 +55,8 @@ const rows = [
     <a class="back" href="/">← Markets</a>
 
     <header class="head">
-      <img src={image} alt="" width="40" height="40" />
-      <h1>{name} <span class="symbol">{ticker}</span></h1>
+      <img src={image} alt="" width="40" height="40" transition:name={`coin-${id}`} />
+      <h1><span class="nm" transition:name={`coin-name-${id}`}>{name}</span> <span class="symbol">{ticker}</span></h1>
       <span class="badge num">Rank #{rank}</span>
       <button class="ctrl fav" type="button" data-fav aria-pressed="false" aria-label={`Favourite ${name}`}>
         <svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">
@@ -148,6 +148,9 @@ const rows = [
   }
   .head img {
     border-radius: 50%;
+  }
+  .nm {
+    display: inline-block; /* an inline box cannot carry a view-transition-name */
   }
   h1 {
     font-size: 26px;

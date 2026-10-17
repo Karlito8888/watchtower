@@ -1,5 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
+import Constellation from "../components/Constellation.astro";
 
 const stats = [
   ["cap", "Market cap"],
@@ -30,6 +31,8 @@ const th = (key: string) => ({ key, label: col(key)[1], cls: col(key)[2] });
 >
   <div class="market" data-market>
     <h1 class="visually-hidden">Crypto market overview</h1>
+    <Constellation />
+
 
     <!-- Shared gradients for the sparklines in the table rows. -->
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -349,6 +352,25 @@ const th = (key: string) => ({ key, label: col(key)[1], cls: col(key)[2] });
   .star[aria-pressed="true"] svg {
     fill: var(--warn);
     stroke: var(--warn);
+  }
+
+  /* Micro-interactions: the star pop lives in scripts/fx.ts (a keyframe on [aria-pressed] would replay on every refresh). */
+  @media (prefers-reduced-motion: no-preference) {
+    .toolbar .ctrl {
+      transition:
+        border-color 0.15s,
+        background 0.15s,
+        transform 0.12s;
+    }
+    .toolbar .ctrl:active {
+      transform: scale(0.96);
+    }
+    .market td.coin a {
+      transition: transform 0.15s ease-out;
+    }
+    .market tbody tr:hover td.coin a {
+      transform: translateX(2px);
+    }
   }
 
   /* The table scrolls sideways inside its card if it still does not fit; the coin column stays pinned. */

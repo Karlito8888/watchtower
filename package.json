@@ -15,10 +15,12 @@
     "@astrojs/sitemap": "^3.7.4",
     "astro": "^7.4.0",
     "lightweight-charts": "^5.2.1",
-    "motion": "^14.3.0"
+    "motion": "^14.3.0",
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@types/three": "^0.186.0",
     "typescript": "6"
   }
 }

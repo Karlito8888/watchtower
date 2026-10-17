@@ -1,3 +1,4 @@
+import { animate } from "motion";
 import {
   AreaSeries,
   ColorType,
@@ -11,6 +12,7 @@ import {
 import { fetchChart, fetchMarkets, RateLimitError } from "../lib/coingecko";
 import { compact, dateShort, money, percent } from "../lib/format";
 import { getCurrency, getFavourites, toggleFavourite, type PrefsChange } from "../lib/prefs";
+import { countTo, pop, reduced } from "./fx";
 
 type Days = number | "max";
 type Point = { time: UTCTimestamp; value: number };
@@ -66,6 +68,8 @@ function init() {
   let points: Point[] = [];
   let chartRun = 0;
   let statsRun = 0;
+  let revealed = false;
+  if (!reduced()) box.style.opacity = "0"; // revealed when the first data lands, so the empty grid never flashes
 
   const colours = palette();
   const chart = createChart(box, { autoSize: true, ...colours.chart });
@@ -120,12 +124,12 @@ function init() {
         return;
       }
       const change = m.price_change_percentage_24h_in_currency;
-      set("price", money(m.current_price, vs));
+      countTo(q('[data-stat="price"]'), m.current_price, (n) => money(n, vs));
       set("change", percent(change));
       tone(q('[data-stat="change"]'), change);
-      set("marketCap", compact(m.market_cap, vs));
+      countTo(q('[data-stat="marketCap"]'), m.market_cap, (n) => compact(n, vs));
       set("fdv", compact(m.fully_diluted_valuation, vs));
-      set("volume", compact(m.total_volume, vs));
+      countTo(q('[data-stat="volume"]'), m.total_volume, (n) => compact(n, vs));
       set("high", money(m.high_24h, vs));
       set("low", money(m.low_24h, vs));
       set("circ", compact(m.circulating_supply));
@@ -176,6 +180,10 @@ function init() {
       });
       series.setData(points);
       chart.timeScale().fitContent();
+      if (!revealed) {
+        revealed = true;
+        if (!reduced()) animate(box, { opacity: [0, 1], y: [8, 0] }, { duration: 0.5, ease: [0.22, 1, 0.36, 1] });
+      }
       const first = points[0];
       const last = points.at(-1)!;
       const change = ((last.value - first.value) / first.value) * 100;
@@ -217,7 +225,11 @@ function init() {
     "prefs:change",
     (e) => {
       const { key } = (e as CustomEvent<PrefsChange>).detail;
-      if (key === "favourites") fav.ariaPressed = String(getFavourites().has(id));
+      if (key === "favourites") {
+        const on = getFavourites().has(id);
+        if (on && fav.ariaPressed !== "true") pop(fav.querySelector("svg"));
+        fav.ariaPressed = String(on);
+      }
       if (key === "theme") {
         const next = palette();
         chart.applyOptions(next.chart);

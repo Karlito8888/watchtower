@@ -3,6 +3,7 @@ import { navigate } from "astro:transitions/client";
 import { fetchGlobal, fetchMarkets, RateLimitError, type Currency, type Global, type Market } from "../lib/coingecko";
 import { getCurrency, getFavourites, toggleFavourite, type PrefsChange } from "../lib/prefs";
 import { compact, money, percent } from "../lib/format";
+import { countTo, pop, reduced, vtName } from "./fx";
 
 const STABLES: Record<string, true> = Object.fromEntries(
   "usdt usdc dai busd tusd usdd fdusd usde pyusd usds frax lusd gusd usdp eurc eurt ust".split(" ").map((s) => [s, true]),
@@ -31,6 +32,7 @@ type Ctx = {
   data: Market[];
   seq: number;
   rendered: boolean;
+  flips: { cancel(): void }[];
 };
 let ctx: Ctx | null = null;
 
@@ -49,33 +51,77 @@ function sparkline(prices: number[] | undefined) {
     .map((p, i) => `${((i / (pts.length - 1)) * 120).toFixed(1)},${(33 - ((p - lo) / span) * 30).toFixed(1)}`)
     .join(" ");
   const dir = prices[prices.length - 1] >= prices[0] ? "up" : "down";
-  return `<svg class="${dir}" width="120" height="36" viewBox="0 0 120 36" aria-hidden="true"><polygon points="${line} 120,36 0,36" fill="url(#spark-${dir})"/><polyline points="${line}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  return `<svg class="${dir}" width="120" height="36" viewBox="0 0 120 36" aria-hidden="true"><polygon points="${line} 120,36 0,36" fill="url(#spark-${dir})"/><polyline points="${line}" pathLength="1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 
 function rowHtml(m: Market, vs: Currency, favs: Set<string>) {
   const on = favs.has(m.id);
   const name = esc(m.name);
   const pct = (k: string, v: number | null) => `<td class="num c-${k} ${tone(v)}">${percent(v)}</td>`;
-  return `<tr data-id="${esc(m.id)}" data-name="${name}"><td class="num muted c-rank">${m.market_cap_rank ?? "–"}</td><td class="c-star"><button type="button" class="star" data-star aria-pressed="${on}" aria-label="${starLabel(name, on)}"><svg width="18" height="18" viewBox="0 0 24 24" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></svg></button></td><td class="coin c-coin"><a href="/coin/${esc(m.id)}"><img src="${esc(m.image)}" width="24" height="24" alt="" loading="lazy" decoding="async"><span class="nm">${name}</span><span class="sym">${esc(m.symbol.toUpperCase())}</span></a></td><td class="num c-price">${money(m.current_price, vs)}</td>${pct("h1", m.price_change_percentage_1h_in_currency)}${pct("h24", m.price_change_percentage_24h_in_currency)}${pct("d7", m.price_change_percentage_7d_in_currency)}${pct("d30", m.price_change_percentage_30d_in_currency)}${pct("y1", m.price_change_percentage_1y_in_currency)}<td class="num c-mcap">${compact(m.market_cap, vs)}</td><td class="num c-vol">${compact(m.total_volume, vs)}</td><td class="spark c-spark">${sparkline(m.sparkline_in_7d?.price)}</td></tr>`;
+  return `<tr data-id="${esc(m.id)}" data-name="${name}"><td class="num muted c-rank">${m.market_cap_rank ?? "–"}</td><td class="c-star"><button type="button" class="star" data-star aria-pressed="${on}" aria-label="${starLabel(name, on)}"><svg width="18" height="18" viewBox="0 0 24 24" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></svg></button></td><td class="coin c-coin"><a href="/coin/${esc(m.id)}"><img src="${esc(m.image)}" width="24" height="24" alt="" loading="lazy" decoding="async" style="view-transition-name:${vtName("coin", m.id)}"><span class="nm" style="view-transition-name:${vtName("coin-name", m.id)}">${name}</span><span class="sym">${esc(m.symbol.toUpperCase())}</span></a></td><td class="num c-price">${money(m.current_price, vs)}</td>${pct("h1", m.price_change_percentage_1h_in_currency)}${pct("h24", m.price_change_percentage_24h_in_currency)}${pct("d7", m.price_change_percentage_7d_in_currency)}${pct("d30", m.price_change_percentage_30d_in_currency)}${pct("y1", m.price_change_percentage_1y_in_currency)}<td class="num c-mcap">${compact(m.market_cap, vs)}</td><td class="num c-vol">${compact(m.total_volume, vs)}</td><td class="spark c-spark">${sparkline(m.sparkline_in_7d?.price)}</td></tr>`;
 }
 
-function setStat(name: string, text: string, cls = "") {
+function stat(name: string, v: number | null | undefined, fmt: (n: number) => string, cls = "", fallback = "–") {
   const el = q(`[data-stat="${name}"]`);
-  el.textContent = text;
-  el.className = cls;
+  el.className = cls; // drops the skeleton class on the first value
+  countTo(el, v, fmt, fallback);
 }
 
 function renderBanner(g: Global | null, vs: Currency) {
-  const pct = (v: number | undefined) => (v == null ? "–" : `${v.toFixed(1)}%`);
-  setStat("cap", g ? compact(g.total_market_cap[vs], vs) : "–");
-  setStat("capchg", g ? `${percent(g.market_cap_change_percentage_24h_usd)} 24h` : "", g ? tone(g.market_cap_change_percentage_24h_usd) : "");
-  setStat("vol", g ? compact(g.total_volume[vs], vs) : "–");
-  setStat("btc", pct(g?.market_cap_percentage.btc));
-  setStat("eth", pct(g?.market_cap_percentage.eth));
-  setStat("coins", g ? new Intl.NumberFormat("en-US").format(g.active_cryptocurrencies) : "–");
+  const chg = g?.market_cap_change_percentage_24h_usd;
+  const pct = (n: number) => `${n.toFixed(1)}%`;
+  stat("cap", g?.total_market_cap[vs], (n) => compact(n, vs));
+  stat("capchg", chg, (n) => `${percent(n)} 24h`, tone(chg), "");
+  stat("vol", g?.total_volume[vs], (n) => compact(n, vs));
+  stat("btc", g?.market_cap_percentage.btc, pct);
+  stat("eth", g?.market_cap_percentage.eth, pct);
+  stat("coins", g?.active_cryptocurrencies, (n) => new Intl.NumberFormat("en-US").format(Math.round(n)));
 }
 
-function apply() {
+/** Tops of the rows on screen (max 40) by id: the "First" of FLIP. Reads only, one layout flush. */
+function visibleTops() {
+  const tops = new Map<string, number>();
+  for (const tr of q<HTMLTableSectionElement>("[data-tbody]").rows) {
+    const { top, bottom } = tr.getBoundingClientRect();
+    if (top >= innerHeight || tops.size >= 40) break;
+    if (bottom > 0 && tr.dataset.id) tops.set(tr.dataset.id, top);
+  }
+  return tops;
+}
+
+/** Rows still on screen glide from where they were, rows that just entered fade in. All reads happen before any animation starts. */
+function flip(c: Ctx, before: Map<string, number>) {
+  const moved: [HTMLTableRowElement, number][] = [];
+  const fresh: HTMLTableRowElement[] = [];
+  for (const tr of q<HTMLTableSectionElement>("[data-tbody]").rows) {
+    const { top, bottom } = tr.getBoundingClientRect();
+    if (top >= innerHeight || moved.length + fresh.length >= 40) break;
+    if (bottom <= 0 || !tr.dataset.id) continue;
+    const old = before.get(tr.dataset.id);
+    if (old == null) fresh.push(tr);
+    else if (Math.abs(old - top) > 1) moved.push([tr, old - top]);
+  }
+  for (const [tr, d] of moved) c.flips.push(animate(tr, { y: [d, 0] }, { duration: 0.35, ease: [0.22, 1, 0.36, 1] }));
+  if (fresh.length) c.flips.push(animate(fresh, { opacity: [0, 1] }, { duration: 0.25 }));
+}
+
+/** Polylines draw themselves (pathLength is 1, so dash units are fractions of the line) while the fill fades in. */
+function drawSparklines(rows: HTMLTableRowElement[]) {
+  const lines = rows.flatMap((tr) => tr.querySelector("polyline") ?? []);
+  const fills = rows.flatMap((tr) => tr.querySelector("polygon") ?? []);
+  for (const l of lines) {
+    l.style.strokeDasharray = "1 2";
+    l.style.strokeDashoffset = "1";
+  }
+  const opts = { duration: 0.6, delay: stagger(0.02), ease: "easeOut" } as const;
+  Promise.all([animate(fills, { opacity: [0, 1] }, opts), animate(lines, { strokeDashoffset: [1, 0] }, opts)]).then(() => {
+    for (const el of [...lines, ...fills]) el.removeAttribute("style");
+  });
+}
+
+const snapshot = () => (ctx!.rendered && !reduced() ? visibleTops() : null);
+
+function apply(before = snapshot()) {
   const c = ctx!;
   const favs = getFavourites();
   const text = view.q.trim().toLowerCase();
@@ -96,6 +142,8 @@ function apply() {
     return (typeof x === "string" ? x.localeCompare(y as string) : x - (y as number)) * view.dir;
   });
 
+  for (const a of c.flips) a.cancel(); // after the snapshot (it holds the in-flight positions), before the DOM changes
+  c.flips.length = 0;
   const frag = document.createDocumentFragment();
   for (const m of list) frag.append(c.rows.get(m.id)!);
   q("[data-tbody]").replaceChildren(frag);
@@ -111,6 +159,7 @@ function apply() {
     else th.removeAttribute("aria-sort");
   });
   q<HTMLSelectElement>("[data-sort-select]").value = view.sort;
+  if (before) flip(c, before);
 }
 
 function syncStars() {
@@ -119,8 +168,10 @@ function syncStars() {
   ctx!.rows.forEach((tr, id) => {
     const on = favs.has(id);
     const b = tr.querySelector<HTMLElement>("[data-star]")!;
+    const was = b.getAttribute("aria-pressed") === "true";
     b.setAttribute("aria-pressed", String(on));
     b.setAttribute("aria-label", starLabel(tr.dataset.name!, on));
+    if (on && !was) pop(b.querySelector("svg"));
   });
 }
 
@@ -149,13 +200,17 @@ async function load(silent: boolean) {
 
   if (m.status === "fulfilled") {
     c.data = m.value;
+    document.dispatchEvent(new CustomEvent<Market[]>("market:data", { detail: m.value }));
     const favs = getFavourites();
+    const before = snapshot();
     const body = q<HTMLTableSectionElement>("[data-tbody]");
     body.innerHTML = m.value.map((x) => rowHtml(x, vs, favs)).join("");
     c.rows = new Map(Array.from(body.rows, (tr) => [tr.dataset.id!, tr]));
-    apply();
-    if (!c.rendered && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      animate(Array.from(body.rows).slice(0, 30), { opacity: [0, 1], y: [8, 0] }, { duration: 0.4, delay: stagger(0.02) });
+    apply(before);
+    if (!c.rendered && !reduced()) {
+      const first = Array.from(body.rows).slice(0, 30);
+      animate(first, { opacity: [0, 1], y: [8, 0] }, { duration: 0.4, delay: stagger(0.02) });
+      drawSparklines(first);
     }
     c.rendered = true;
   } else if (!silent) {
@@ -177,7 +232,7 @@ function init() {
     ctx = null;
     return;
   }
-  ctx = { root, rows: new Map(), data: [], seq: 0, rendered: false };
+  ctx = { root, rows: new Map(), data: [], seq: 0, rendered: false, flips: [] };
   syncControls();
 
   let timer: number;

@@ -14,9 +14,11 @@ live at `https://watchtower.charmaweb.com`.
 ## Stack
 
 Astro 7 static output, Bun, TypeScript, no UI framework. `lightweight-charts` (TradingView)
-for the coin chart, `motion` for the row fade-in. Self-hosted Inter via the Astro fonts API.
-Astro `<ClientRouter />` drives view transitions, so every page script initialises on
-`astro:page-load`, is idempotent, and disposes on `astro:before-swap`.
+for the coin chart, `motion` for counters, FLIP reorders and draw-ins, `three` for the market
+constellation. Self-hosted Inter via the Astro fonts API. Astro `<ClientRouter />` drives view
+transitions (row image and name morph into the coin page header via `view-transition-name:
+coin-<id>`), so every page script initialises on `astro:page-load`, is idempotent, and
+disposes on `astro:before-swap`. Every animation is skipped under `prefers-reduced-motion`.
 
 ## Data
 
@@ -42,6 +44,14 @@ set follows the market. A coin outside the top 250 lands on `src/pages/404.astro
   under 768 px each row is a two-line grid card with no `<thead>`, the toolbar `<select>` sorts.
 - `src/pages/coin/[id].astro` + `src/scripts/coin.ts`: static shell from build-time props,
   chart and stats filled client-side.
+- `src/scripts/fx.ts`: the motion helpers shared by both pages (`reduced`, `countTo`, `pop`,
+  `vtName`).
+- `src/components/Constellation.astro` + `src/scripts/constellation-boot.ts` +
+  `src/scripts/constellation.ts`: three.js `Points` scene above the banner, one point per coin
+  (Vogel spiral by rank, size from log market cap, colour from 24h change), fed by the
+  `market:data` event `market.ts` dispatches after each load. `src/scripts/webgl-gate.ts`
+  starts it only with WebGL 2, without reduced motion, after load and idle, and owns the
+  pause button. Without it the block shows a static CSS gradient.
 - `src/styles/global.css`: tokens (`--bg --surface --border --fg --muted --accent --up --down`)
   with a light variant under `html[data-theme="light"]`; components use only tokens.
 
