@@ -372,15 +372,6 @@ const th = (key: string) => ({ key, label: col(key)[1], cls: col(key)[2] });
     .market .c-d30 {
       display: none;
     }
-  }
-  @media (max-width: 1199px) {
-    .market table {
-      min-width: 0;
-    }
-    .market .c-y1,
-    .market .c-vol {
-      display: none;
-    }
     /* The longest of 250 names ("EigenCloud (prev. EigenLayer)") would otherwise set the table width. */
     .market td.coin .nm {
       max-width: 140px;
@@ -391,11 +382,20 @@ const th = (key: string) => ({ key, label: col(key)[1], cls: col(key)[2] });
       width: 96px;
       height: 32px;
     }
+  }
+  @media (max-width: 1199px) {
+    .market table {
+      min-width: 0;
+    }
+    .market .c-y1,
+    .market .c-vol {
+      display: none;
+    }
     .sort-select {
       display: inline-flex;
     }
   }
-  /* Tablet portrait: PHP prices are the widest, 7 columns fit 736px with tighter cells. */
+  /* Tablet portrait: PHP prices are the widest, 7 columns with tighter cells. */
   @media (max-width: 1023px) {
     .market .c-d7 {
       display: none;
