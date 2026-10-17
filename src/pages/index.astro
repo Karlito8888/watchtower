@@ -294,7 +294,8 @@ const th = (key: string) => ({ key, label: col(key)[1], cls: col(key)[2] });
     cursor: pointer;
     transition: background 0.12s;
   }
-  .market tbody tr:hover {
+  .market tbody tr:hover,
+  .market tbody tr.is-focus {
     background: var(--surface-2);
   }
   .market tbody tr.sk {

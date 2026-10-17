@@ -5,7 +5,18 @@
 
 <div class="constellation" data-constellation>
   <canvas aria-hidden="true"></canvas>
-  <p class="caption">250 coins. Size is market cap, colour is 24h change.</p>
+  <p class="caption">
+    250 coins. Size is market cap, colour is 24h change.
+    <span class="hint-mouse">Hover a point, drag to spin, scroll to zoom.</span>
+    <span class="hint-touch">Tap a point, drag to spin, pinch to zoom.</span>
+  </p>
+  <div class="tip" data-tip aria-hidden="true">
+    <img data-tip-img width="24" height="24" alt="" decoding="async" />
+    <div class="tip-body">
+      <div class="tip-top"><strong data-tip-nm></strong> <span class="tip-sym" data-tip-sym></span></div>
+      <div class="tip-bot num"><span data-tip-px></span> <span data-tip-ch></span></div>
+    </div>
+  </div>
   <button type="button" class="ctrl scene-toggle" data-scene-toggle data-pause="Pause" data-play="Play" aria-pressed="false" hidden>Pause</button>
 </div>
 
@@ -19,6 +30,8 @@
       radial-gradient(ellipse 50% 85% at 50% 50%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
       var(--surface);
     border: 1px solid var(--border);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
     border-radius: var(--radius);
   }
   .constellation::after {
@@ -35,6 +48,8 @@
     height: 100%;
     opacity: 0;
     transition: opacity 0.8s ease;
+    cursor: grab;
+    touch-action: pan-y; /* vertical swipes scroll the page, horizontal ones spin the galaxy */
   }
   canvas.is-live {
     opacity: 1;
@@ -45,10 +60,57 @@
     bottom: 12px;
     z-index: 1;
     max-width: calc(100% - 110px);
+    pointer-events: none;
     margin: 0;
     font-size: 12px;
     color: var(--muted);
     text-shadow: 0 0 6px var(--surface), 0 0 12px var(--surface);
+  }
+  .hint-touch {
+    display: none;
+  }
+  @media (hover: none) {
+    .hint-mouse {
+      display: none;
+    }
+    .hint-touch {
+      display: inline;
+    }
+  }
+  .tip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: max-content;
+    padding: 8px 12px 8px 8px;
+    font-size: 12px;
+    line-height: 1.35;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    will-change: transform;
+  }
+  .tip.is-on {
+    opacity: 1;
+  }
+  .tip img {
+    border-radius: 50%;
+  }
+  .tip-sym {
+    color: var(--muted);
+  }
+  .tip-bot {
+    display: flex;
+    gap: 8px;
   }
   .scene-toggle {
     position: absolute;
@@ -63,6 +125,10 @@
     display: none;
   }
   @media (max-width: 767px) {
+    .hint-mouse,
+    .hint-touch {
+      display: none; /* the legend alone already takes two lines */
+    }
     .constellation {
       height: 200px;
     }

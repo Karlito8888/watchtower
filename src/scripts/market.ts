@@ -153,6 +153,7 @@ function apply(before = snapshot()) {
   empty.hidden = !!list.length;
   empty.textContent = text ? `No coin matches "${view.q.trim()}".` : "Star a coin to pin it here.";
   q("[data-count]").textContent = `${list.length} coins shown`;
+  document.dispatchEvent(new CustomEvent<string[]>("market:visible", { detail: list.map((m) => m.id) }));
 
   c.root.querySelectorAll<HTMLElement>("th[data-sort]").forEach((th) => {
     if (th.dataset.sort === view.sort) th.setAttribute("aria-sort", view.dir === 1 ? "ascending" : "descending");
@@ -271,6 +272,17 @@ function init() {
     } else if ((el = hit("tbody tr[data-id]")) && !hit("a")) navigate(`/coin/${el.dataset.id}`);
   });
 
+  // Table to constellation: hovered row id, or null. Scene to table: `scene:focus` highlights the row.
+  const focus = (id: string | null) => document.dispatchEvent(new CustomEvent<string | null>("market:focus", { detail: id }));
+  root.addEventListener("pointerover", (e) => {
+    const tr = (e.target as HTMLElement).closest<HTMLElement>("tbody tr[data-id]");
+    if (tr) focus(tr.dataset.id!);
+  });
+  root.addEventListener("pointerout", (e) => {
+    const tr = (e.target as HTMLElement).closest<HTMLElement>("tbody tr[data-id]");
+    if (tr && !tr.contains(e.relatedTarget as Node | null)) focus(null);
+  });
+
   load(false);
 }
 
@@ -283,6 +295,12 @@ document.addEventListener("prefs:change", (e) => {
     syncStars();
     if (ctx.data.length) apply();
   }
+});
+document.addEventListener("scene:focus", (e) => {
+  if (!ctx) return;
+  const id = (e as CustomEvent<string | null>).detail;
+  ctx.root.querySelector("tbody tr.is-focus")?.classList.remove("is-focus");
+  if (id) ctx.rows.get(id)?.classList.add("is-focus");
 });
 // 61s, not 60s: the API cache TTL is 60s, so a 60s tick can land just inside it and skip the refresh.
 setInterval(() => {
