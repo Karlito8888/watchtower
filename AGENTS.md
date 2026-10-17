@@ -1,8 +1,7 @@
 # AGENTS.md — watchtower
 
 Crypto market dashboard: top 250 coins, sparklines, per-coin price chart. Portfolio piece,
-live at `https://watchtower.charmaweb.com`. Successor of `Karlito8888/watch-tower` (React,
-2024), rebuilt on Astro.
+live at `https://watchtower.charmaweb.com`.
 
 ## What is NOT here
 
@@ -37,9 +36,10 @@ set follows the market. A coin outside the top 250 lands on `src/pages/404.astro
   toggle, footer. The theme is applied inline before first paint.
 - `src/lib/prefs.ts`: currency, favourites and theme in `localStorage`; every setter dispatches
   `prefs:change` on `document`, pages listen and re-render.
-- `src/lib/format.ts`: `Intl` formatters, `en-US` locale.
 - `src/pages/index.astro` + `src/scripts/market.ts`: global banner, toolbar, table. View state
-  (query, tab, sort, top N) lives in module scope, never in storage.
+  (query, tab, sort, top N) lives in module scope, never in storage. Every cell carries a
+  `c-<column>` class; four CSS tiers drop columns by usefulness (1400, 1200, 1024, 768 px), and
+  under 768 px each row is a two-line grid card with no `<thead>`, the toolbar `<select>` sorts.
 - `src/pages/coin/[id].astro` + `src/scripts/coin.ts`: static shell from build-time props,
   chart and stats filled client-side.
 - `src/styles/global.css`: tokens (`--bg --surface --border --fg --muted --accent --up --down`)

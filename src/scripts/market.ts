@@ -55,8 +55,8 @@ function sparkline(prices: number[] | undefined) {
 function rowHtml(m: Market, vs: Currency, favs: Set<string>) {
   const on = favs.has(m.id);
   const name = esc(m.name);
-  const pct = (v: number | null) => `<td class="num ${tone(v)}">${percent(v)}</td>`;
-  return `<tr data-id="${esc(m.id)}" data-name="${name}"><td class="num muted">${m.market_cap_rank ?? "–"}</td><td><button type="button" class="star" data-star aria-pressed="${on}" aria-label="${starLabel(name, on)}"><svg width="18" height="18" viewBox="0 0 24 24" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></svg></button></td><td class="coin"><a href="/coin/${esc(m.id)}"><img src="${esc(m.image)}" width="24" height="24" alt="" loading="lazy" decoding="async"><span class="nm">${name}</span><span class="sym">${esc(m.symbol.toUpperCase())}</span></a></td><td class="num">${money(m.current_price, vs)}</td>${pct(m.price_change_percentage_1h_in_currency)}${pct(m.price_change_percentage_24h_in_currency)}${pct(m.price_change_percentage_7d_in_currency)}${pct(m.price_change_percentage_30d_in_currency)}${pct(m.price_change_percentage_1y_in_currency)}<td class="num">${compact(m.market_cap, vs)}</td><td class="num">${compact(m.total_volume, vs)}</td><td class="spark">${sparkline(m.sparkline_in_7d?.price)}</td></tr>`;
+  const pct = (k: string, v: number | null) => `<td class="num c-${k} ${tone(v)}">${percent(v)}</td>`;
+  return `<tr data-id="${esc(m.id)}" data-name="${name}"><td class="num muted c-rank">${m.market_cap_rank ?? "–"}</td><td class="c-star"><button type="button" class="star" data-star aria-pressed="${on}" aria-label="${starLabel(name, on)}"><svg width="18" height="18" viewBox="0 0 24 24" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></svg></button></td><td class="coin c-coin"><a href="/coin/${esc(m.id)}"><img src="${esc(m.image)}" width="24" height="24" alt="" loading="lazy" decoding="async"><span class="nm">${name}</span><span class="sym">${esc(m.symbol.toUpperCase())}</span></a></td><td class="num c-price">${money(m.current_price, vs)}</td>${pct("h1", m.price_change_percentage_1h_in_currency)}${pct("h24", m.price_change_percentage_24h_in_currency)}${pct("d7", m.price_change_percentage_7d_in_currency)}${pct("d30", m.price_change_percentage_30d_in_currency)}${pct("y1", m.price_change_percentage_1y_in_currency)}<td class="num c-mcap">${compact(m.market_cap, vs)}</td><td class="num c-vol">${compact(m.total_volume, vs)}</td><td class="spark c-spark">${sparkline(m.sparkline_in_7d?.price)}</td></tr>`;
 }
 
 function setStat(name: string, text: string, cls = "") {
@@ -110,6 +110,7 @@ function apply() {
     if (th.dataset.sort === view.sort) th.setAttribute("aria-sort", view.dir === 1 ? "ascending" : "descending");
     else th.removeAttribute("aria-sort");
   });
+  q<HTMLSelectElement>("[data-sort-select]").value = view.sort;
 }
 
 function syncStars() {
@@ -186,6 +187,12 @@ function init() {
       view.q = (e.target as HTMLInputElement).value;
       if (ctx?.data.length) apply();
     }, 150);
+  });
+  // Phones and tablets: hidden headers cannot be clicked, the select sorts instead (always descending, rank ascending).
+  q<HTMLSelectElement>("[data-sort-select]").addEventListener("change", (e) => {
+    view.sort = (e.target as HTMLSelectElement).value;
+    view.dir = view.sort === "rank" ? 1 : -1;
+    if (ctx?.data.length) apply();
   });
 
   root.addEventListener("click", (e) => {
