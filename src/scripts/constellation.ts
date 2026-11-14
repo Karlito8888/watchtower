@@ -106,7 +106,12 @@ const hash = (k: number) => {
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 export function init(canvas: HTMLCanvasElement) {
-  const renderer = new WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: "low-power" });
+  const renderer = new WebGLRenderer({
+    canvas,
+    alpha: true,
+    antialias: false,
+    powerPreference: "low-power",
+  });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.setClearColor(0x000000, 0);
 
@@ -166,7 +171,9 @@ export function init(canvas: HTMLCanvasElement) {
     const cs = getComputedStyle(document.documentElement);
     up.setStyle(cs.getPropertyValue("--up").trim());
     down.setStyle(cs.getPropertyValue("--down").trim());
-    neutral.setStyle(cs.getPropertyValue("--accent").trim()).lerp(tmp.setStyle(cs.getPropertyValue("--muted").trim()), 0.5);
+    neutral
+      .setStyle(cs.getPropertyValue("--accent").trim())
+      .lerp(tmp.setStyle(cs.getPropertyValue("--muted").trim()), 0.5);
     const dark = document.documentElement.dataset.theme !== "light";
     material.blending = dark ? AdditiveBlending : NormalBlending;
     material.uniforms.uHot.value = dark ? 1 : 0;
@@ -258,7 +265,9 @@ export function init(canvas: HTMLCanvasElement) {
   let sy = 0;
   let sz = 1;
   const proj = (i: number) => {
-    v.fromArray(pos, i * 3).applyMatrix4(points.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
+    v.fromArray(pos, i * 3)
+      .applyMatrix4(points.matrixWorld)
+      .applyMatrix4(camera.matrixWorldInverse);
     sz = -v.z;
     v.applyMatrix4(camera.projectionMatrix);
     sx = (v.x * 0.5 + 0.5) * w;
@@ -331,7 +340,8 @@ export function init(canvas: HTMLCanvasElement) {
     tip.style.transform = `translate(${x}px,${y}px)`;
   };
   const syncCursor = () => {
-    canvas.style.cursor = diving >= 0 ? "default" : dragging ? "grabbing" : pick >= 0 ? "pointer" : "grab";
+    canvas.style.cursor =
+      diving >= 0 ? "default" : dragging ? "grabbing" : pick >= 0 ? "pointer" : "grab";
   };
 
   const setPick = (i: number) => {
@@ -344,7 +354,10 @@ export function init(canvas: HTMLCanvasElement) {
     }
     tip.classList.toggle("is-on", i >= 0 && diving < 0);
     syncCursor();
-    if (i !== prev) document.dispatchEvent(new CustomEvent<string | null>("scene:focus", { detail: i >= 0 ? data[i].id : null }));
+    if (i !== prev)
+      document.dispatchEvent(
+        new CustomEvent<string | null>("scene:focus", { detail: i >= 0 ? data[i].id : null }),
+      );
   };
 
   const applyVisible = () => {
@@ -431,7 +444,10 @@ export function init(canvas: HTMLCanvasElement) {
 
     if (diving >= 0) {
       const k = tween.k * tween.k * (3 - 2 * tween.k);
-      ctr.fromArray(pos, diving * 3).applyMatrix4(points.matrixWorld).multiplyScalar(k);
+      ctr
+        .fromArray(pos, diving * 3)
+        .applyMatrix4(points.matrixWorld)
+        .multiplyScalar(k);
     }
     const k = 1 - Math.exp(-dt * 3);
     const calm = dragging || diving >= 0; // parallax rests during a drag and a dive
@@ -440,12 +456,21 @@ export function init(canvas: HTMLCanvasElement) {
     const d = dist * zoom;
     const el = elev + pyCur * MAX_TILT;
     const az = pxCur * MAX_TILT;
-    camera.position.set(ctr.x + d * Math.cos(el) * Math.sin(az), ctr.y + d * Math.sin(el), ctr.z + d * Math.cos(el) * Math.cos(az));
+    camera.position.set(
+      ctr.x + d * Math.cos(el) * Math.sin(az),
+      ctr.y + d * Math.sin(el),
+      ctr.z + d * Math.cos(el) * Math.cos(az),
+    );
     camera.lookAt(ctr);
     camera.updateMatrixWorld();
     material.uniforms.uCam.value = d;
 
-    const next = diving >= 0 ? diving : mouseIn && !dragging ? nearest(mx - rect.left, my - rect.top) : touchPick;
+    const next =
+      diving >= 0
+        ? diving
+        : mouseIn && !dragging
+          ? nearest(mx - rect.left, my - rect.top)
+          : touchPick;
     if (next !== pick) setPick(next);
     if (pick >= 0 && diving < 0) placeTip();
 
@@ -626,7 +651,11 @@ export function init(canvas: HTMLCanvasElement) {
       mode = IGNORE; // a finger remains after a pinch: it neither drags nor taps
       return;
     }
-    const tap = e.type === "pointerup" && (mode === PENDING || mode === DRAG) && travel <= TAP_PX && e.timeStamp - gt < 500;
+    const tap =
+      e.type === "pointerup" &&
+      (mode === PENDING || mode === DRAG) &&
+      travel <= TAP_PX &&
+      e.timeStamp - gt < 500;
     if (mode !== DRAG || e.timeStamp - accT > 80) spinVel = 0; // inertia only when the finger left moving
     mode = NONE;
     dragging = false;
@@ -657,7 +686,11 @@ export function init(canvas: HTMLCanvasElement) {
 
   const onWheel = (e: WheelEvent) => {
     if (diving >= 0) return;
-    const next = clamp(zoomTgt * Math.exp(e.deltaY * (e.deltaMode === 1 ? 16 : 1) * (e.ctrlKey ? 0.01 : 0.0012)), ZOOM_MIN, ZOOM_MAX);
+    const next = clamp(
+      zoomTgt * Math.exp(e.deltaY * (e.deltaMode === 1 ? 16 : 1) * (e.ctrlKey ? 0.01 : 0.0012)),
+      ZOOM_MIN,
+      ZOOM_MAX,
+    );
     if (next === zoomTgt) return; // at the limit the page scrolls instead
     e.preventDefault();
     cancelTween();

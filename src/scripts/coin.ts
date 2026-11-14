@@ -182,7 +182,8 @@ function init() {
       chart.timeScale().fitContent();
       if (!revealed) {
         revealed = true;
-        if (!reduced()) animate(box, { opacity: [0, 1], y: [8, 0] }, { duration: 0.5, ease: [0.22, 1, 0.36, 1] });
+        if (!reduced())
+          animate(box, { opacity: [0, 1], y: [8, 0] }, { duration: 0.5, ease: [0.22, 1, 0.36, 1] });
       }
       const first = points[0];
       const last = points.at(-1)!;

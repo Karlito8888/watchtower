@@ -13,7 +13,7 @@ live at `https://watchtower.charmaweb.com`.
 
 ## Stack
 
-Astro 7 static output, Bun, TypeScript, no UI framework. `lightweight-charts` (TradingView)
+Astro 7 static output, Vite+ (`vp`, Bun underneath), TypeScript, no UI framework. `lightweight-charts` (TradingView)
 for the coin chart, `motion` for counters, FLIP reorders and draw-ins, `three` for the market
 constellation. Self-hosted Inter via the Astro fonts API. Astro `<ClientRouter />` drives view
 transitions (row image and name morph into the coin page header via `view-transition-name:
@@ -62,9 +62,13 @@ set follows the market. A coin outside the top 250 lands on `src/pages/404.astro
 ## Commands
 
 ```sh
-bun run dev      # http://localhost:4350, Astro 7 daemonises: `bunx astro dev stop` to end it
-bun run check    # astro check + astro build, what CI runs
+vp run dev       # http://localhost:4350, Astro 7 daemonises: `vpx astro dev stop` to end it
+vp run gate     # astro check + vp check + astro build, what CI runs
 ```
+
+`vp check` formats with Oxfmt and lints with Oxlint (type-aware, from `vite.config.ts`);
+`.astro` files are covered by `astro check` only. Never `vp dev` / `vp build` here: they start
+bare Vite, Astro runs through the package scripts.
 
 Deploy: push to `main`. `wrangler.jsonc` publishes `dist/` as a Cloudflare Worker with static
 assets on the custom domain. Repo secret `CLOUDFLARE_API_TOKEN`, repo variable

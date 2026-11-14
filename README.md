@@ -7,9 +7,9 @@ Data: CoinGecko public API, called from the browser without an API key. Each vis
 their own IP quota; responses are cached in `sessionStorage` for a minute.
 
 ```sh
-bun install
-bun run dev      # http://localhost:4350
-bun run check    # astro check + build
+vp install
+vp run dev      # http://localhost:4350
+vp run gate     # astro check + vp check + astro build
 ```
 
 Deploys to a Cloudflare Worker (static assets) on every push to `main`, plus a daily rebuild

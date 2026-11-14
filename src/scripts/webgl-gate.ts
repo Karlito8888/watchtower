@@ -20,7 +20,8 @@ export async function startWhenIdle<T extends Scene>(
   const mq = matchMedia("(prefers-reduced-motion: reduce)");
   if (mq.matches) return null;
   try {
-    if (!(window.WebGL2RenderingContext && document.createElement("canvas").getContext("webgl2"))) return null;
+    if (!(window.WebGL2RenderingContext && document.createElement("canvas").getContext("webgl2")))
+      return null;
   } catch {
     return null;
   }

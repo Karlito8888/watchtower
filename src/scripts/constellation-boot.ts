@@ -26,7 +26,9 @@ document.addEventListener("market:visible", (e) => {
   visible = (e as CustomEvent<string[]>).detail;
   live?.setVisible(visible);
 });
-document.addEventListener("market:focus", (e) => live?.setFocus((e as CustomEvent<string | null>).detail));
+document.addEventListener("market:focus", (e) =>
+  live?.setFocus((e as CustomEvent<string | null>).detail),
+);
 
 function init() {
   teardown?.();

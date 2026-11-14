@@ -1,15 +1,13 @@
 {
   "name": "watchtower",
-  "type": "module",
   "version": "0.0.1",
-  "engines": {
-    "node": ">=22.22.0"
-  },
+  "type": "module",
   "scripts": {
     "dev": "astro dev --port 4350",
     "build": "astro build",
     "preview": "astro preview --port 4350",
-    "check": "astro check && astro build"
+    "gate": "astro check && vp check && astro build",
+    "prepare": "git rev-parse --git-dir >/dev/null 2>&1 && vp config --no-agent || true"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
@@ -21,6 +19,21 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@types/three": "^0.186.0",
-    "typescript": "6"
+    "typescript": "6",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
+    "vite-plus": "1.6.0"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0"
+  },
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "bun",
+      "version": "1.4.4",
+      "onFail": "download"
+    }
   }
 }

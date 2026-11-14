@@ -1,0 +1,4 @@
+# Pre-commit: lint-fix and format the staged files (vite.config.ts `staged`).
+# The Vite+ dispatcher runs this file with `sh -e` from the repository root.
+# @see https://viteplus.dev/guide/commit-hooks.md
+vp staged

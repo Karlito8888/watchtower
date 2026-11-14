@@ -13,7 +13,12 @@ const tweens = new WeakMap<Element, Tween>();
  * Glide an element's text from the value it last showed (0 on first paint) to `to`, formatting every frame with `fmt`.
  * `null`/`undefined` shows `fallback`. Reduced motion sets the final text at once.
  */
-export function countTo(el: HTMLElement, to: number | null | undefined, fmt: (n: number) => string, fallback = "–") {
+export function countTo(
+  el: HTMLElement,
+  to: number | null | undefined,
+  fmt: (n: number) => string,
+  fallback = "–",
+) {
   let t = tweens.get(el);
   if (!t) tweens.set(el, (t = { v: 0 }));
   t.run?.stop();
@@ -46,5 +51,10 @@ export function countTo(el: HTMLElement, to: number | null | undefined, fmt: (n:
 
 /** Quick 1 → 1.3 → 1 scale pop, used when a favourite star turns on. */
 export function pop(el: Element | null) {
-  if (el && !reduced()) animate(el, { transform: ["scale(1)", "scale(1.3)", "scale(1)"] }, { duration: 0.25, ease: "easeOut" });
+  if (el && !reduced())
+    animate(
+      el,
+      { transform: ["scale(1)", "scale(1.3)", "scale(1)"] },
+      { duration: 0.25, ease: "easeOut" },
+    );
 }

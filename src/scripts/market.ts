@@ -1,12 +1,21 @@
 import { animate, stagger } from "motion";
 import { navigate } from "astro:transitions/client";
-import { fetchGlobal, fetchMarkets, RateLimitError, type Currency, type Global, type Market } from "../lib/coingecko";
+import {
+  fetchGlobal,
+  fetchMarkets,
+  RateLimitError,
+  type Currency,
+  type Global,
+  type Market,
+} from "../lib/coingecko";
 import { getCurrency, getFavourites, toggleFavourite, type PrefsChange } from "../lib/prefs";
 import { compact, money, percent } from "../lib/format";
 import { countTo, pop, reduced, vtName } from "./fx";
 
 const STABLES: Record<string, true> = Object.fromEntries(
-  "usdt usdc dai busd tusd usdd fdusd usde pyusd usds frax lusd gusd usdp eurc eurt ust".split(" ").map((s) => [s, true]),
+  "usdt usdc dai busd tusd usdd fdusd usde pyusd usds frax lusd gusd usdp eurc eurt ust"
+    .split(" ")
+    .map((s) => [s, true]),
 );
 const isStable = (m: Market) => m.symbol.toLowerCase() in STABLES || /usd/i.test(m.name);
 
@@ -24,7 +33,14 @@ const SORTS: Record<string, (m: Market) => number | string | null> = {
 };
 
 // View state lives in module scope: it survives ClientRouter navigations, never touches storage.
-const view = { q: "", tab: "all" as "all" | "fav", hide: true, top: 250, sort: "rank", dir: 1 as 1 | -1 };
+const view = {
+  q: "",
+  tab: "all" as "all" | "fav",
+  hide: true,
+  top: 250,
+  sort: "rank",
+  dir: 1 as 1 | -1,
+};
 
 type Ctx = {
   root: HTMLElement;
@@ -39,7 +55,8 @@ let ctx: Ctx | null = null;
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const q = <T extends HTMLElement>(sel: string) => ctx!.root.querySelector<T>(sel)!;
 const tone = (v: number | null | undefined) => (v == null || v === 0 ? "" : v > 0 ? "up" : "down");
-const starLabel = (name: string, on: boolean) => `${on ? "Remove" : "Add"} ${name} ${on ? "from" : "to"} favourites`;
+const starLabel = (name: string, on: boolean) =>
+  `${on ? "Remove" : "Add"} ${name} ${on ? "from" : "to"} favourites`;
 
 function sparkline(prices: number[] | undefined) {
   if (!prices || prices.length < 2) return "";
@@ -48,7 +65,10 @@ function sparkline(prices: number[] | undefined) {
   const lo = Math.min(...pts);
   const span = Math.max(...pts) - lo || 1;
   const line = pts
-    .map((p, i) => `${((i / (pts.length - 1)) * 120).toFixed(1)},${(33 - ((p - lo) / span) * 30).toFixed(1)}`)
+    .map(
+      (p, i) =>
+        `${((i / (pts.length - 1)) * 120).toFixed(1)},${(33 - ((p - lo) / span) * 30).toFixed(1)}`,
+    )
     .join(" ");
   const dir = prices[prices.length - 1] >= prices[0] ? "up" : "down";
   return `<svg class="${dir}" width="120" height="36" viewBox="0 0 120 36" aria-hidden="true"><polygon points="${line} 120,36 0,36" fill="url(#spark-${dir})"/><polyline points="${line}" pathLength="1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
@@ -57,11 +77,18 @@ function sparkline(prices: number[] | undefined) {
 function rowHtml(m: Market, vs: Currency, favs: Set<string>) {
   const on = favs.has(m.id);
   const name = esc(m.name);
-  const pct = (k: string, v: number | null) => `<td class="num c-${k} ${tone(v)}">${percent(v)}</td>`;
+  const pct = (k: string, v: number | null) =>
+    `<td class="num c-${k} ${tone(v)}">${percent(v)}</td>`;
   return `<tr data-id="${esc(m.id)}" data-name="${name}"><td class="num muted c-rank">${m.market_cap_rank ?? "–"}</td><td class="c-star"><button type="button" class="star" data-star aria-pressed="${on}" aria-label="${starLabel(name, on)}"><svg width="18" height="18" viewBox="0 0 24 24" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/></svg></button></td><td class="coin c-coin"><a href="/coin/${esc(m.id)}"><img src="${esc(m.image)}" width="24" height="24" alt="" loading="lazy" decoding="async" style="view-transition-name:${vtName("coin", m.id)}"><span class="nm" style="view-transition-name:${vtName("coin-name", m.id)}">${name}</span><span class="sym">${esc(m.symbol.toUpperCase())}</span></a></td><td class="num c-price">${money(m.current_price, vs)}</td>${pct("h1", m.price_change_percentage_1h_in_currency)}${pct("h24", m.price_change_percentage_24h_in_currency)}${pct("d7", m.price_change_percentage_7d_in_currency)}${pct("d30", m.price_change_percentage_30d_in_currency)}${pct("y1", m.price_change_percentage_1y_in_currency)}<td class="num c-mcap">${compact(m.market_cap, vs)}</td><td class="num c-vol">${compact(m.total_volume, vs)}</td><td class="spark c-spark">${sparkline(m.sparkline_in_7d?.price)}</td></tr>`;
 }
 
-function stat(name: string, v: number | null | undefined, fmt: (n: number) => string, cls = "", fallback = "–") {
+function stat(
+  name: string,
+  v: number | null | undefined,
+  fmt: (n: number) => string,
+  cls = "",
+  fallback = "–",
+) {
   const el = q(`[data-stat="${name}"]`);
   el.className = cls; // drops the skeleton class on the first value
   countTo(el, v, fmt, fallback);
@@ -75,7 +102,9 @@ function renderBanner(g: Global | null, vs: Currency) {
   stat("vol", g?.total_volume[vs], (n) => compact(n, vs));
   stat("btc", g?.market_cap_percentage.btc, pct);
   stat("eth", g?.market_cap_percentage.eth, pct);
-  stat("coins", g?.active_cryptocurrencies, (n) => new Intl.NumberFormat("en-US").format(Math.round(n)));
+  stat("coins", g?.active_cryptocurrencies, (n) =>
+    new Intl.NumberFormat("en-US").format(Math.round(n)),
+  );
 }
 
 /** Tops of the rows on screen (max 40) by id: the "First" of FLIP. Reads only, one layout flush. */
@@ -101,7 +130,8 @@ function flip(c: Ctx, before: Map<string, number>) {
     if (old == null) fresh.push(tr);
     else if (Math.abs(old - top) > 1) moved.push([tr, old - top]);
   }
-  for (const [tr, d] of moved) c.flips.push(animate(tr, { y: [d, 0] }, { duration: 0.35, ease: [0.22, 1, 0.36, 1] }));
+  for (const [tr, d] of moved)
+    c.flips.push(animate(tr, { y: [d, 0] }, { duration: 0.35, ease: [0.22, 1, 0.36, 1] }));
   if (fresh.length) c.flips.push(animate(fresh, { opacity: [0, 1] }, { duration: 0.25 }));
 }
 
@@ -114,7 +144,10 @@ function drawSparklines(rows: HTMLTableRowElement[]) {
     l.style.strokeDashoffset = "1";
   }
   const opts = { duration: 0.6, delay: stagger(0.02), ease: "easeOut" } as const;
-  Promise.all([animate(fills, { opacity: [0, 1] }, opts), animate(lines, { strokeDashoffset: [1, 0] }, opts)]).then(() => {
+  Promise.all([
+    animate(fills, { opacity: [0, 1] }, opts),
+    animate(lines, { strokeDashoffset: [1, 0] }, opts),
+  ]).then(() => {
     for (const el of [...lines, ...fills]) el.removeAttribute("style");
   });
 }
@@ -153,10 +186,13 @@ function apply(before = snapshot()) {
   empty.hidden = !!list.length;
   empty.textContent = text ? `No coin matches "${view.q.trim()}".` : "Star a coin to pin it here.";
   q("[data-count]").textContent = `${list.length} coins shown`;
-  document.dispatchEvent(new CustomEvent<string[]>("market:visible", { detail: list.map((m) => m.id) }));
+  document.dispatchEvent(
+    new CustomEvent<string[]>("market:visible", { detail: list.map((m) => m.id) }),
+  );
 
   c.root.querySelectorAll<HTMLElement>("th[data-sort]").forEach((th) => {
-    if (th.dataset.sort === view.sort) th.setAttribute("aria-sort", view.dir === 1 ? "ascending" : "descending");
+    if (th.dataset.sort === view.sort)
+      th.setAttribute("aria-sort", view.dir === 1 ? "ascending" : "descending");
     else th.removeAttribute("aria-sort");
   });
   q<HTMLSelectElement>("[data-sort-select]").value = view.sort;
@@ -179,8 +215,12 @@ function syncStars() {
 function syncControls() {
   const { root } = ctx!;
   q<HTMLInputElement>("[data-search]").value = view.q;
-  root.querySelectorAll<HTMLElement>("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tab === view.tab)));
-  root.querySelectorAll<HTMLElement>("[data-top]").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.top! === view.top)));
+  root
+    .querySelectorAll<HTMLElement>("[data-tab]")
+    .forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tab === view.tab)));
+  root
+    .querySelectorAll<HTMLElement>("[data-top]")
+    .forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.top! === view.top)));
   q("[data-hide]").setAttribute("aria-pressed", String(view.hide));
   q("[data-fav-count]").textContent = String(getFavourites().size);
 }
@@ -221,7 +261,9 @@ async function load(silent: boolean) {
     wrap.hidden = true;
     q("[data-empty]").hidden = true;
     q("[data-error-text]").textContent =
-      m.reason instanceof RateLimitError ? m.reason.message : "Could not load market data. Check your connection and retry.";
+      m.reason instanceof RateLimitError
+        ? m.reason.message
+        : "Could not load market data. Check your connection and retry.";
     q("[data-error]").hidden = false;
   }
   wrap.removeAttribute("aria-busy");
@@ -266,14 +308,16 @@ function init() {
     else if (hit("[data-retry]")) load(false);
     else if ((el = hit("th[data-sort]"))) {
       const key = el.dataset.sort!;
-      view.dir = key === view.sort ? (-view.dir as 1 | -1) : key === "rank" || key === "name" ? 1 : -1;
+      view.dir =
+        key === view.sort ? (-view.dir as 1 | -1) : key === "rank" || key === "name" ? 1 : -1;
       view.sort = key;
       if (ctx!.data.length) apply();
     } else if ((el = hit("tbody tr[data-id]")) && !hit("a")) navigate(`/coin/${el.dataset.id}`);
   });
 
   // Table to constellation: hovered row id, or null. Scene to table: `scene:focus` highlights the row.
-  const focus = (id: string | null) => document.dispatchEvent(new CustomEvent<string | null>("market:focus", { detail: id }));
+  const focus = (id: string | null) =>
+    document.dispatchEvent(new CustomEvent<string | null>("market:focus", { detail: id }));
   root.addEventListener("pointerover", (e) => {
     const tr = (e.target as HTMLElement).closest<HTMLElement>("tbody tr[data-id]");
     if (tr) focus(tr.dataset.id!);

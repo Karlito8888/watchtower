@@ -56,7 +56,9 @@ export type Chart = {
 
 export class RateLimitError extends Error {
   constructor() {
-    super("CoinGecko is not answering, most likely the public rate limit. Wait a minute and retry.");
+    super(
+      "CoinGecko is not answering, most likely the public rate limit. Wait a minute and retry.",
+    );
     this.name = "RateLimitError";
   }
 }
@@ -91,8 +93,7 @@ export const fetchMarkets = (vs: Currency) =>
     60_000,
   );
 
-export const fetchGlobal = () =>
-  get<{ data: Global }>("/global", 60_000).then((r) => r.data);
+export const fetchGlobal = () => get<{ data: Global }>("/global", 60_000).then((r) => r.data);
 
 /** `days` 1..365 or "max". Past 90 days CoinGecko returns daily points automatically. */
 export const fetchChart = (id: string, vs: Currency, days: number | "max") =>
