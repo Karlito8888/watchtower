@@ -1,0 +1,35 @@
+# Project settings read by omp (docs: omp://settings.md, layer 4).
+# Skills listed in the system prompt for this repo: its stack plus the ones its sessions
+# actually opened. A missing skill is still reachable by skill://<name> only if listed,
+# so add a family here before relying on it. Global filters apply first.
+skills:
+  includeSkills:
+    - llms-txt
+    - ponytail*
+    - rapport-html
+    - graphify
+    - grilling
+    - diagnosing-bugs
+    - research
+    - find-docs
+    - find-skills
+    - icones
+    - excalidraw-diagram
+    - playwright-cli
+    - crawl4ai
+    - tdd
+    - writing-for-agents
+    - wizard
+    - code-review
+    - codebase-design
+    - domain-modeling
+    - prototype
+    - web-perf
+    - web-design-guidelines
+    - frontend-design
+    - emil-design-eng
+    - cloudflare
+    - workers-best-practices
+    - wrangler
+    - cf-cli
+    - frameworks-on-cloudflare
