@@ -9,7 +9,7 @@ live at `https://watchtower.charmaweb.com`.
 |---|---|
 | General working rules, docs ladder, git, explicit agreement | `~/.omp/agent/RULES.md` |
 | Workstation, code graphs, workflows | `~/.omp/agent/AGENTS.md` |
-| Durable project facts, deploy identities, debts | `~/.omp/agent/bank/watchtower.md` |
+| Project identity, deploy identities and structural decisions | `~/.omp/agent/bank/watchtower.md` |
 
 ## Stack
 
